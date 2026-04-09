@@ -16,6 +16,7 @@ Usage:
 import argparse
 import json
 from predictor import NBAPredictor
+from polymarket_trading import PolymarketTrader
 
 
 def print_prediction(pred: dict):
@@ -58,7 +59,24 @@ def main():
     parser.add_argument("--home", type=str, help="Home team name (e.g. 'Los Angeles Lakers')")
     parser.add_argument("--away", type=str, help="Away team name (e.g. 'Golden State Warriors')")
     parser.add_argument("--json", action="store_true", help="Output raw JSON")
+    parser.add_argument("--test-connection", action="store_true", help="Test Polymarket credentials")
+    parser.add_argument("--balance", action="store_true", help="Show your Polymarket balance")
+    parser.add_argument("--positions", action="store_true", help="Show your open positions")
     args = parser.parse_args()
+
+    # Account / connection commands
+    if args.test_connection or args.balance or args.positions:
+        trader = PolymarketTrader()
+        if args.test_connection:
+            trader.test_connection()
+        if args.balance:
+            print("Balance:", trader.get_balance())
+        if args.positions:
+            positions = trader.get_positions()
+            print(f"Open positions ({len(positions)}):")
+            for p in positions:
+                print(f"  {p}")
+        return
 
     predictor = NBAPredictor()
 
