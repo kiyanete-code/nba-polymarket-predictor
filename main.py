@@ -13,6 +13,7 @@ Usage:
     python main.py --home "Los Angeles Lakers" --away "Golden State Warriors"
 """
 
+import os
 import argparse
 import json
 from predictor import NBAPredictor
@@ -62,7 +63,21 @@ def main():
     parser.add_argument("--test-connection", action="store_true", help="Test Polymarket credentials")
     parser.add_argument("--balance", action="store_true", help="Show your Polymarket balance")
     parser.add_argument("--positions", action="store_true", help="Show your open positions")
+    parser.add_argument("--setup-telegram", action="store_true", help="Detect your Telegram chat ID")
+    parser.add_argument("--daily-summary", action="store_true", help="Send daily Telegram briefing")
     args = parser.parse_args()
+
+    # Telegram setup helper
+    if args.setup_telegram:
+        token = os.getenv("TELEGRAM_BOT_TOKEN")
+        if not token:
+            print("Set TELEGRAM_BOT_TOKEN in your .env first, then send any message to your bot.")
+            return
+        from notifier import TelegramNotifier
+        chat_id = TelegramNotifier.get_chat_id(token)
+        if chat_id:
+            print(f"\nAdd this to your .env:\nTELEGRAM_CHAT_ID={chat_id}")
+        return
 
     # Account / connection commands
     if args.test_connection or args.balance or args.positions:
@@ -79,6 +94,15 @@ def main():
         return
 
     predictor = NBAPredictor()
+
+    if args.daily_summary:
+        from notifier import TelegramNotifier
+        notifier = TelegramNotifier()
+        print("Scanning today's games for daily summary...")
+        results = predictor.scan_todays_games()
+        notifier.send_daily_summary(results)
+        print(f"Daily summary sent to Telegram ({len(results)} games)")
+        return
 
     if args.home and args.away:
         # Single game mode

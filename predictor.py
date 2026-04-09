@@ -2,6 +2,12 @@ from typing import Dict, Optional, Tuple
 from polymarket_data import PolymarketDataFetcher
 from nba_stats import NBAStatsFetcher
 
+try:
+    from notifier import TelegramNotifier
+    _notifier = TelegramNotifier()
+except Exception:
+    _notifier = None  # Alerts optional — runs fine without Telegram configured
+
 
 class NBAPredictor:
     """
@@ -56,7 +62,7 @@ class NBAPredictor:
             poly_home_prob, stat_home_prob, home_team_name, away_team_name
         )
 
-        return {
+        result = {
             "game": f"{home_team_name} vs {away_team_name}",
             "market_question": odds.get("market_question"),
             "condition_id": odds.get("condition_id"),
@@ -75,6 +81,12 @@ class NBAPredictor:
             "edge_pct": edge,
             "recommendation": recommendation,
         }
+
+        # Fire Telegram alert if edge > 5%
+        if _notifier and edge is not None and abs(edge) > 5:
+            _notifier.alert_edge_detected(result)
+
+        return result
 
     def _find_team_probability(self, outcomes: Dict, team_name: str) -> Optional[float]:
         """Match a team name to its Polymarket outcome token probability."""
